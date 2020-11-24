@@ -106,6 +106,7 @@ def update_contact(req):
     return JsonResponse(dict(msg="Mise à jour reussie", status=1), safe=False)
 
 
+@csrf_exempt
 def delete_contact(req, id):
     query = Contacts.objects.filter(id=id)
     if not query.exists():
