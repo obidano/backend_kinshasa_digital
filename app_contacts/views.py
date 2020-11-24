@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render
 import re
@@ -95,3 +96,17 @@ def delete_contact(req, id):
 
     query.delete()
     return JsonResponse(dict(msg="Suppression reussie", status=1), safe=False)
+
+
+def listing(req):
+    query = Contacts.objects.order_by('-id').values()
+    return JsonResponse(dict(msg=list(query), status=1), safe=False)
+
+
+def search(req):
+    keyw = req.GET.get('search', '')
+    query = Contacts.objects.filter(Q(nom__icontains=keyw)
+                                    | Q(prenom__icontains=keyw) | Q(postnom__icontains=keyw)
+                                    | Q(email__icontains=keyw) | Q(societe__icontains=keyw)) \
+        .values()
+    return JsonResponse(dict(msg=list(query), status=1), safe=False)
