@@ -7,16 +7,25 @@ from django.shortcuts import render
 import re
 
 # Create your views here.
+from django.views.decorators.csrf import csrf_exempt
+
 from app_contacts.models import Contacts
 
 
+@csrf_exempt
 def create_contact(req):
     data = json.loads(req.body)
     nom = data.get('nom')
     prenom = data.get('prenom')
     email = data.get('email')
     phone = data.get('phone')
+    phone = str(phone)
     societe = data.get('societe')
+    anniversaire = None
+    if data.get('anniversaire'):
+        anniversaire = datetime.strptime(data['anniversaire'], '%Y-%m-%d')
+
+    del data['anniversaire']
     # check required fields
     if not nom or not prenom or not email or not phone or not societe:
         msg = "Un des champs obligatoires est manquant"
@@ -28,7 +37,7 @@ def create_contact(req):
         return JsonResponse(dict(msg=msg, status=0), safe=False, status=500)
 
     # check length and startswith
-    if len(phone) < 13 or not phone.startswith(+243):
+    if len(phone) < 13 or not phone.startswith('+243'):
         msg = "La longeur du numero n'est pas correcte " \
               "ou le numero ne commence pas par +243"
         return JsonResponse(dict(msg=msg, status=0), safe=False, status=500)
@@ -42,18 +51,28 @@ def create_contact(req):
 
     newData = Contacts(**data)
     newData.created_at = datetime.now()
+    newData.birthdate = anniversaire
     newData.save()
 
     return JsonResponse(dict(msg="Creation reussie", id=newData.pk, status=1), safe=False)
 
 
+@csrf_exempt
 def update_contact(req):
     data = json.loads(req.body)
     nom = data.get('nom')
     prenom = data.get('prenom')
     email = data.get('email')
     phone = data.get('phone')
+    phone = str(phone)
+
     societe = data.get('societe')
+    anniversaire = None
+    if data.get('anniversaire'):
+        anniversaire = datetime.strptime(data['anniversaire'], '%Y-%m-%d')
+
+    del data['anniversaire']
+
     id = data.get('id')
 
     query = Contacts.objects.filter(id=id)
@@ -71,7 +90,7 @@ def update_contact(req):
         return JsonResponse(dict(msg=msg, status=0), safe=False, status=500)
 
     # check length and startswith
-    if len(phone) < 13 or not phone.startswith(+243):
+    if len(phone) < 13 or not phone.startswith('+243'):
         msg = "La longeur du numero n'est pas correcte " \
               "ou le numero ne commence pas par +243"
         return JsonResponse(dict(msg=msg, status=0), safe=False, status=500)
@@ -83,8 +102,7 @@ def update_contact(req):
         msg = "Ce numero ne fait pas partie des reseaux autorisés en RDC"
         return JsonResponse(dict(msg=msg, status=0), safe=False, status=500)
 
-    del data['updated_at']
-    query.update(updated_at=datetime.now(), **data)
+    query.update(updated_at=datetime.now(), birthdate=anniversaire, **data)
     return JsonResponse(dict(msg="Mise à jour reussie", status=1), safe=False)
 
 
